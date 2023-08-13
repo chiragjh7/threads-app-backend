@@ -1,8 +1,8 @@
 import { prismaClient } from "../lib/db";
 import { createHmac, randomBytes } from "node:crypto";
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 
-const JWT_SECRET = '$uperman@1234';
+const JWT_SECRET = "$uperman@1234";
 
 export interface CreateUserPayload {
   firstName: string;
@@ -11,17 +11,16 @@ export interface CreateUserPayload {
   password: string;
 }
 
-export interface getUserTokenPayload{
+export interface getUserTokenPayload {
   email: string;
   password: string;
 }
 
 class UserService {
-
-  private  static generateHash(password: string, salt: string) {
+  private static generateHash(password: string, salt: string) {
     const hashedPassword = createHmac("sha256", salt)
-    .update(password)
-    .digest("hex");
+      .update(password)
+      .digest("hex");
     return hashedPassword;
   }
   public static createUser(payload: CreateUserPayload) {
@@ -41,22 +40,30 @@ class UserService {
 
   private static getUserByEmail(email: string) {
     return prismaClient.user.findUnique({
-      where: {email}
-    })
+      where: { email },
+    });
+  }
+
+  public static getUserById(id: string) {
+    return prismaClient.user.findUnique({ where: { id } });
+  }
+
+  public static decodeJwtToken(token: string) {
+    return jwt.verify(token, JWT_SECRET);
   }
 
   public static async getUserToken(payload: getUserTokenPayload) {
-    const {email, password} = payload;
+    const { email, password } = payload;
     const user = await UserService.getUserByEmail(email);
-    if(!user) throw new Error('user not found');
+    if (!user) throw new Error("user not found");
 
     const userSalt = user.salt;
     const userHashedPassword = UserService.generateHash(password, userSalt);
-    if(userHashedPassword !== user.password) {
-      throw new Error('invalid password');
+    if (userHashedPassword !== user.password) {
+      throw new Error("invalid password");
     }
     // Gen token
-    const token = jwt.sign({id: user.id, email: user.email}, JWT_SECRET);
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
     return token;
   }
 }
